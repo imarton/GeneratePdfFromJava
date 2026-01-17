@@ -7,6 +7,9 @@
         <ui:define name="content">
             <p class="lead">A szerver időpontja: <span class="badge bg-secondary"><h:outputText value="#{helloBean.currentTime}" /></span></p>
 
+            <h:form>
+                <h:commandButton value="PDF Bizonylat Generálása" action="#{helloBean.generatePdf}" styleClass="btn btn-primary" />
+            </h:form>
         </ui:define>
     </ui:composition>
 </f:view>
