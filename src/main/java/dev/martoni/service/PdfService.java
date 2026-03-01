@@ -7,6 +7,7 @@ import com.lowagie.text.pdf.BaseFont;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
+import com.lowagie.text.pdf.draw.DottedLineSeparator;
 import dev.martoni.model.Asset;
 import dev.martoni.model.DocumentData;
 
@@ -101,34 +102,21 @@ public class PdfService {
             document.add(Chunk.NEWLINE);
             document.add(Chunk.NEWLINE);
 
-            // Aláírás blokk
-            PdfPTable signTable = new PdfPTable(new float[]{10, 90});
-            signTable.setWidthPercentage(100);
-            signTable.getDefaultCell().setBorder(Rectangle.NO_BORDER);
-            
-            PdfPCell checkCell = new PdfPCell(new Phrase("\uf00c", faFont));
-            checkCell.setBorder(Rectangle.NO_BORDER);
-            checkCell.setBackgroundColor(new Color(223, 240, 216));
-            checkCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-            checkCell.setHorizontalAlignment(Element.ALIGN_CENTER);
-            signTable.addCell(checkCell);
+            // Aláírás blokk (átadó / átvevő)
+            DottedLineSeparator dotted = new DottedLineSeparator();
+            dotted.setLineWidth(1f);
+            dotted.setGap(2f);
 
-            PdfPCell signTextCell = new PdfPCell();
-            signTextCell.setBorder(Rectangle.NO_BORDER);
-            signTextCell.setBackgroundColor(new Color(223, 240, 216));
-            signTextCell.setPadding(10);
-            
-            Paragraph p1 = new Paragraph("Az eszközöket " + data.getNewOwner() + " nevében átvettem.", 
-                    new Font(bfBold, 10, Font.NORMAL, new Color(60, 118, 61)));
-            signTextCell.addElement(p1);
-            
-            Paragraph p2 = new Paragraph("Gazdasági esemény ideje: " + DATE_FORMAT.format(data.getIssueDate()), smallFont);
-            signTextCell.addElement(p2);
-            
-            Paragraph p3 = new Paragraph("Aláírta: " + data.getSigner(), boldSmallFont);
-            signTextCell.addElement(p3);
-            
-            signTable.addCell(signTextCell);
+            PdfPTable datumTable = buildDateTable(smallFont, dotted, "Dátum:");
+            document.add(datumTable);
+
+//            document.add(Chunk.NEWLINE);
+            PdfPTable signTable = new PdfPTable(new float[]{50, 50});
+            signTable.setWidthPercentage(100);
+            PdfPCell left = buildSignTableCell(dotted, boldSmallFont, smallFont, "Átadó", data.getPreviousOwner() == null ? "" : data.getPreviousOwner());
+            PdfPCell right = buildSignTableCell(dotted, boldSmallFont, smallFont, "Átvevő", data.getNewOwner() == null ? "" : data.getNewOwner());
+            signTable.addCell(left);
+            signTable.addCell(right);
             document.add(signTable);
 
             document.close();
@@ -139,6 +127,49 @@ public class PdfService {
         byte[] bytes = baos.toByteArray();
         //saveToFile(bytes, data.getId());
         return bytes;
+    }
+
+    private PdfPTable buildDateTable(Font smallFont, DottedLineSeparator dotted, String textValue) {
+        PdfPTable dateTable = new PdfPTable(new float[]{20, 80});
+        dateTable.setTotalWidth(200f);
+        dateTable.setLockedWidth(true);
+        dateTable.setHorizontalAlignment(Element.ALIGN_LEFT);
+
+        PdfPCell dateLabelCell = new PdfPCell(new Phrase(textValue, smallFont));
+        dateLabelCell.setBorder(Rectangle.NO_BORDER);
+        dateLabelCell.setPadding(0);
+
+        PdfPCell dateLineCell = new PdfPCell();
+        dateLineCell.setBorder(Rectangle.NO_BORDER);
+        dateLineCell.setPadding(0);
+        dateLineCell.addElement(new Chunk(dotted));
+
+        dateTable.addCell(dateLabelCell);
+        dateTable.addCell(dateLineCell);
+
+        return dateTable;
+    }
+
+    private static PdfPCell buildSignTableCell(DottedLineSeparator dotted, Font boldSmallFont, Font smallFont, String title, String name) {
+        PdfPCell cell = new PdfPCell();
+        cell.setBorder(Rectangle.NO_BORDER);
+        cell.setPaddingTop(30);
+        cell.setPaddingLeft(50);
+        cell.setPaddingRight(50);
+//        cell.setMinimumHeight(90);
+
+        Paragraph leftSignLine = new Paragraph();
+        leftSignLine.setAlignment(Element.ALIGN_CENTER);
+        leftSignLine.add(new Chunk(dotted));
+        Paragraph leftTitle = new Paragraph(title, boldSmallFont);
+        leftTitle.setAlignment(Element.ALIGN_CENTER);
+        Paragraph leftName = new Paragraph(name, smallFont);
+        leftName.setAlignment(Element.ALIGN_CENTER);
+        cell.addElement(leftSignLine);
+        cell.addElement(leftTitle);
+        cell.addElement(leftName);
+
+        return cell;
     }
 
     private PdfPCell createHeaderCell(String text, Font font) {
